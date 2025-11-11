@@ -4,237 +4,102 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Aquí Nomás — DEMO inteligente (sinónimos + fallback CSV + imágenes)</title>
-<!--ID_SYS:AQNM_20251110_V4_1-->
+<!--ID_SYS:AQNM_20251110_V3_IMG-->
 <style>
 :root{--pri:#0b5cff;}
-body{
-  font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
-  margin:0;
-  background:#f7f9fb;
-  color:#0b1220;
-}
-.wrap{
-  max-width:900px;
-  margin:0 auto;
-  padding:16px;
-}
-h1{
-  font-size:22px;
-  margin:0 0 12px;
-}
-.row{
-  display:flex;
-  flex-wrap:wrap;
-  gap:8px;
-  align-items:center;
-  margin-bottom:10px;
-}
-.input{
-  flex:1 1 200px;
-  padding:10px 12px;
-  border-radius:8px;
-  border:1px solid #cbd5e1;
-  font-size:15px;
-}
-button{
-  background:var(--pri);
-  color:#fff;
-  border:none;
-  border-radius:8px;
-  padding:10px 14px;
-  font-size:15px;
-  cursor:pointer;
-}
-button:hover{opacity:.9;}
-small{
-  display:block;
-  color:#666;
-  margin-top:8px;
-  font-size:13px;
-}
-#resultados{
-  margin-top:12px;
-}
-.box{
-  background:#fff;
-  border:1px solid #e2e8f0;
-  border-radius:12px;
-  padding:10px 12px;
-  margin-bottom:10px;
-  display:flex;
-  align-items:center;
-  gap:10px;
-}
-.logo{
-  width:56px;
-  height:56px;
-  border-radius:50%;
-  object-fit:cover;
-  flex-shrink:0;
-  border:1px solid #d0d7de;
-  background:#f8fafc;
-}
-.info{
-  flex:1;
-}
-.name{
-  font-weight:600;
-  margin-bottom:2px;
-}
-.rubro{
-  font-size:14px;
-  color:#555;
-}
-.dir{
-  font-size:13px;
-  color:#777;
-}
+body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:0;background:#f7f9fb;color:#0b1220}
+.wrap{max-width:900px;margin:0 auto;padding:16px}
+h1{font-size:22px;margin:0 0 12px}
+.box{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:12px;margin-bottom:12px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.input{flex:1 1 200px;padding:10px 12px;border-radius:8px;border:1px solid #cbd5e1;font-size:15px}
+button{background:var(--pri);color:#fff;border:none;border-radius:8px;padding:10px 16px;font-size:15px;cursor:pointer}
+button:hover{background:#0048d0}
+.resultado{display:flex;align-items:center;gap:12px;border-bottom:1px solid #e2e8f0;padding:10px 0}
+.resultado img{width:100px;height:100px;object-fit:cover;border-radius:6px;flex-shrink:0}
+@media(max-width:600px){.resultado img{width:80px;height:80px}}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>🔎 Aquí Nomás — versión inteligente</h1>
-  <div class="row">
-    <input id="busqueda" class="input" placeholder="¿Qué buscás? (Ej: almorzar en el centro)"/>
-    <button id="buscarBtn">Buscar</button>
-    <button id="vozBtn">🎤</button>
-    <button id="cercaBtn">Cerca</button>
-    <button id="limpiarBtn">Limpiar</button>
-  </div>
-  <small>La búsqueda entiende sinónimos y funciona por voz o texto.</small>
-  <div id="resultados"></div>
+<h1>Aquí Nomás — DEMO inteligente</h1>
+<div class="box row">
+<input id="busqueda" class="input" placeholder="Buscar un local o servicio...">
+<button id="btnBuscar">Buscar</button>
+<button id="btnVoz">🎤</button>
+<button id="btnLimpiar">Limpiar</button>
+</div>
+<div id="resultados"></div>
 </div>
 
 <script>
-let locales = [];
-
-const sinonimos = {
-  "almorzar":["comer","almuerzo","restaurante","menu del dia","plato del dia"],
-  "cafe":["cafeteria","bar","espresso"],
-  "helado":["postre","heladeria"]
-};
-
-function normalizar(txt){
-  return txt.toLowerCase()
-            .normalize("NFD")
-            .replace(/[\u0300-\u036f]/g,"");
-}
+const sheetURL='https://docs.google.com/spreadsheets/d/e/2PACX-1vSg0UeYMVZj0b9H2V63XS37oXlIwJ6SL4n-m6WJEbspzM5OP9QA3QF6qSw4fr81dw/pub?gid=1861393565&single=true&output=csv';
+let locales=[];
 
 async function cargarCSV(){
+  console.log("Cargando CSV…");
   try{
-    console.log("Cargando CSV…");
-    const resp = await fetch("https://docs.google.com/spreadsheets/d/e/2PACX-1vSg0UeYMVZj0b9H2V63XS37oXlIwJ6SL4n-m6WJEbspzM5OP9QA3QF6qSw4fr81dw/pub?gid=1861393565&single=true&output=csv");
-    const texto = await resp.text();
-    const filas = texto.trim().split("\n").map(f=>f.split(","));
-    const cab = filas.shift().map(c=>c.trim());
-    locales = filas.map(f=>{
-      const obj = {};
-      cab.forEach((c,i)=>{ obj[c] = f[i] || ""; });
+    const resp=await fetch(sheetURL);
+    const data=await resp.text();
+    const filas=data.split("\n").map(r=>r.split(","));
+    const encabezado=filas.shift().map(h=>h.trim());
+    locales=filas.map(f=>{
+      let obj={};
+      encabezado.forEach((h,i)=>obj[h]=f[i]?f[i].trim():"");
       return obj;
     });
     console.log("CSV cargado:",locales.length,"filas");
-  }catch(e){
-    console.error("Error al cargar CSV",e);
-  }
+  }catch(err){console.error("Error cargando CSV:",err);}
 }
 
-function mostrarLocales(lista){
-  const cont = document.getElementById("resultados");
-  cont.innerHTML = "";
-  if(!lista.length){
-    cont.innerHTML = "<p>No se encontraron locales.</p>";
+function mostrarResultados(resultados){
+  const cont=document.getElementById("resultados");
+  cont.innerHTML="";
+  if(resultados.length===0){
+    cont.innerHTML="<p>No se encontraron resultados.</p>";
     return;
   }
-  lista.forEach(l=>{
-    const box = document.createElement("div");
-    box.className = "box";
-
-    const url = (l.imagen_url || "").trim();
-    if(url){
-      const img = document.createElement("img");
-      img.className = "logo";
-      img.src = url;
-      img.alt = l.nombre_local || "Imagen del local";
-      box.appendChild(img);
-    }
-
-    const info = document.createElement("div");
-    info.className = "info";
-    info.innerHTML = `
-      <div class="name">${l.nombre_local || ""}</div>
-      <div class="rubro">${l.rubro || ""}</div>
-      <div class="dir">${l.direccion || ""}</div>
-    `;
-    box.appendChild(info);
-    cont.appendChild(box);
+  resultados.forEach(loc=>{
+    const div=document.createElement("div");
+    div.className="resultado";
+    const img=document.createElement("img");
+    img.src=loc.imagen_url || "";
+    img.alt=loc.nombre_local || "imagen";
+    div.appendChild(img);
+    const texto=document.createElement("div");
+    texto.innerHTML=`<strong>${loc.nombre_local}</strong><br>${loc.rubro}<br>${loc.direccion}<br>${loc.promo_texto||""}`;
+    div.appendChild(texto);
+    cont.appendChild(div);
   });
 }
 
 function buscar(){
-  const q = document.getElementById("busqueda").value.trim();
-  if(!q) return;
-  const query = normalizar(q);
-  const palabras = query.split(/\s+/);
-
-  const lista = locales.filter(l=>{
-    const texto = normalizar(
-      `${l.nombre_local} ${l.rubro} ${l.keywords} ${l.barrio} ${l.promo_texto}`
-    );
-    return palabras.some(p=>{
-      if(texto.includes(p)) return true;
-      const alt = sinonimos[p];
-      return alt && alt.some(s=>texto.includes(s));
-    });
-  });
-
-  mostrarLocales(lista);
+  const q=document.getElementById("busqueda").value.toLowerCase();
+  if(!q){document.getElementById("resultados").innerHTML="";return;}
+  const resultados=locales.filter(l=>
+    l.nombre_local.toLowerCase().includes(q)||
+    l.rubro.toLowerCase().includes(q)||
+    l.keywords.toLowerCase().includes(q)||
+    l.barrio.toLowerCase().includes(q)
+  );
+  mostrarResultados(resultados);
 }
 
-function limpiar(){
-  document.getElementById("busqueda").value = "";
-  document.getElementById("resultados").innerHTML = "";
-}
-
-function usarVoz(){
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if(!SR){
-    alert("Tu navegador no soporta reconocimiento de voz.");
-    return;
-  }
-  const recog = new SR();
-  recog.lang = "es-AR";
-  recog.start();
-  recog.onresult = e=>{
-    const txt = e.results[0][0].transcript;
-    document.getElementById("busqueda").value = txt;
+document.getElementById("btnBuscar").addEventListener("click",buscar);
+document.getElementById("btnLimpiar").addEventListener("click",()=>{
+  document.getElementById("busqueda").value="";
+  document.getElementById("resultados").innerHTML="";
+});
+document.getElementById("btnVoz").addEventListener("click",()=>{
+  const rec=new(window.SpeechRecognition||window.webkitSpeechRecognition)();
+  rec.lang="es-ES";
+  rec.start();
+  rec.onresult=e=>{
+    const txt=e.results[0][0].transcript;
+    document.getElementById("busqueda").value=txt;
     buscar();
   };
-}
-
-function cerca(){
-  if(!navigator.geolocation){
-    alert("Geolocalización no disponible en este dispositivo.");
-    return;
-  }
-  navigator.geolocation.getCurrentPosition(pos=>{
-    const {latitude,longitude} = pos.coords;
-    const lista = locales.filter(l=>{
-      const lat = parseFloat(l.lat);
-      const lng = parseFloat(l.lng);
-      if(!lat || !lng) return false;
-      const d = Math.sqrt((lat-latitude)**2 + (lng-longitude)**2);
-      return d < 0.03; // mismo umbral que antes
-    });
-    mostrarLocales(lista);
-  },()=>{
-    alert("No se pudo obtener tu ubicación.");
-  });
-}
-
-document.getElementById("buscarBtn").onclick = buscar;
-document.getElementById("vozBtn").onclick = usarVoz;
-document.getElementById("cercaBtn").onclick = cerca;
-document.getElementById("limpiarBtn").onclick = limpiar;
+});
 
 cargarCSV();
 </script>
