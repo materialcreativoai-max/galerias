@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Aquí Nomás — DEMO inteligente (V3 IMG ESTABLE5)</title>
-<!--ID_SYS:AQNM_20251110_V3_IMG_ESTABLE5-->
+<title>Aquí Nomás — DEMO inteligente (V3 IMG FINALURL)</title>
+<!--ID_SYS:AQNM_20251110_V3_IMG_FINALURL-->
 <style>
 :root{--pri:#0b5cff;}
 body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:0;background:#f7f9fb;color:#0b1220}
@@ -37,12 +37,6 @@ button:hover{background:#0048d0}
 const sheetURL='https://docs.google.com/spreadsheets/d/e/2PACX-1vSg0UeYMVZj0b9H2V63XS37oXlIwJ6SL4n-m6WJEbspzM5OP9QA3QF6qSw4fr81dw/pub?gid=1861393565&single=true&output=csv';
 let locales=[];
 
-// Imágenes reales en este repo
-const imagenesDisponibles=["hipo.jpeg","lahuella.jpg"];
-
-// prefijo absoluto para GitHub Pages
-const basePath="https://materialcreativoai-max.github.io/galerias/";
-
 async function cargarCSV(){
   console.log("Cargando CSV…");
   try{
@@ -71,10 +65,10 @@ function mostrarResultados(resultados){
   resultados.forEach(loc=>{
     const div=document.createElement("div");
     div.className="resultado";
-    let ruta=(loc.imagen_url||"").trim().replace(/\r/g,"").replace(/\n/g,"");
-    if(ruta && imagenesDisponibles.includes(ruta)){
+    const url=(loc.imagen_url||"").trim();
+    if(url && url.startsWith("http")){
       const img=document.createElement("img");
-      img.src=basePath + ruta; // usa ruta completa del repo
+      img.src=url;
       img.alt=loc.nombre_local||"imagen";
       div.appendChild(img);
     }
