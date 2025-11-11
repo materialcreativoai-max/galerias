@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Aquí Nomás — DEMO inteligente (V3 IMG ON FULLSTABLE)</title>
-<!--ID_SYS:AQNM_20251110_V3_IMG_ON_FULLSTABLE-->
+<title>Aquí Nomás — DEMO inteligente (V3 BASEFUNCIONAL)</title>
+<!--ID_SYS:AQNM_20251110_V3_BASEFUNCIONAL-->
 <style>
 :root{--pri:#0b5cff;}
 body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:0;background:#f7f9fb;color:#0b1220}
@@ -15,8 +15,7 @@ h1{font-size:22px;margin:0 0 12px}
 .input{flex:1 1 200px;padding:10px 12px;border-radius:8px;border:1px solid #cbd5e1;font-size:15px}
 button{background:var(--pri);color:#fff;border:none;border-radius:8px;padding:10px 16px;font-size:15px;cursor:pointer}
 button:hover{background:#0048d0}
-.resultado{display:flex;align-items:center;gap:12px;border-bottom:1px solid #e2e8f0;padding:10px 0}
-.resultado img{width:100px;height:100px;object-fit:cover;border-radius:6px;flex-shrink:0}
+.resultado{border-bottom:1px solid #e2e8f0;padding:10px 0}
 </style>
 </head>
 <body>
@@ -36,32 +35,12 @@ button:hover{background:#0048d0}
 const sheetURL='https://docs.google.com/spreadsheets/d/e/2PACX-1vSg0UeYMVZj0b9H2V63XS37oXlIwJ6SL4n-m6WJEbspzM5OP9QA3QF6qSw4fr81dw/pub?gid=1861393565&single=true&output=csv';
 let locales=[];
 
-// --- parser robusto que respeta comillas ---
-function parseCSV(text){
-  const rows=[];
-  let row=[],cur="",inQuotes=false;
-  for(let i=0;i<text.length;i++){
-    const c=text[i];
-    if(c==='"'){
-      if(inQuotes && text[i+1]==='"'){cur+='"';i++;}
-      else inQuotes=!inQuotes;
-    }else if(c===',' && !inQuotes){
-      row.push(cur);cur="";
-    }else if((c==='\n'||c==='\r') && !inQuotes){
-      if(cur!==""||row.length){row.push(cur);rows.push(row);row=[];cur="";}
-      if(c==='\r' && text[i+1]==='\n') i++;
-    }else cur+=c;
-  }
-  if(cur!==""||row.length){row.push(cur);rows.push(row);}
-  return rows;
-}
-
 async function cargarCSV(){
   console.log("Cargando CSV…");
   try{
     const resp=await fetch(sheetURL);
     const data=await resp.text();
-    const filas=parseCSV(data);
+    const filas=data.split("\n").map(r=>r.split(","));
     const encabezado=filas.shift().map(h=>h.trim());
     locales=filas.map(f=>{
       let obj={};
@@ -82,23 +61,10 @@ function mostrarResultados(resultados){
     return;
   }
   resultados.forEach(loc=>{
-    const div=document.createElement("div");
-    div.className="resultado";
-
-    // imagen si existe URL
-    const url=(loc.imagen_url||"").trim();
-    if(url && url.startsWith("http")){
-      const img=document.createElement("img");
-      img.src=url;
-      img.alt=loc.nombre_local||"imagen";
-      img.onerror=()=>img.style.display="none";
-      div.appendChild(img);
-    }
-
     const texto=document.createElement("div");
+    texto.className="resultado";
     texto.innerHTML=`<strong>${loc.nombre_local}</strong><br>${loc.rubro}<br>${loc.direccion}<br>${loc.promo_texto||""}`;
-    div.appendChild(texto);
-    cont.appendChild(div);
+    cont.appendChild(texto);
   });
 }
 
@@ -115,15 +81,12 @@ function buscar(){
 }
 
 document.getElementById("btnBuscar").addEventListener("click",buscar);
-document.getElementById("busqueda").addEventListener("keydown",e=>{if(e.key==="Enter")buscar();});
 document.getElementById("btnLimpiar").addEventListener("click",()=>{
   document.getElementById("busqueda").value="";
   document.getElementById("resultados").innerHTML="";
 });
 document.getElementById("btnVoz").addEventListener("click",()=>{
-  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(!SR){alert("Tu navegador no soporta reconocimiento de voz.");return;}
-  const rec=new SR();
+  const rec=new(window.SpeechRecognition||window.webkitSpeechRecognition)();
   rec.lang="es-ES";
   rec.start();
   rec.onresult=e=>{
