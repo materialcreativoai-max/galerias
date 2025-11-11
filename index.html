@@ -72,7 +72,6 @@ h1{font-size:22px;margin:0 0 12px}
 </div>
 
 <script>
-// --- configuración y utilidades igual que la estable anterior ---
 const CSV_URL="https://docs.google.com/spreadsheets/d/e/2PACX-1vSg0UeYMVZj0b9H2V63XS37oXlIwJ6SL4n-m6WJEbspzM5OP9QA3QF6qSw4fr81dw/pub?gid=1861393565&single=true&output=csv";
 const STATUS=document.getElementById("status");
 const ERR=document.getElementById("error");
@@ -250,7 +249,9 @@ function render(list,msg){
     const r=o.row;
     const maps=`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((r.direccion||"")+" "+(r.barrio||""))}`;
     const dist=(typeof o.dist==="number")?`<div class="meta">≈ ${o.dist.toFixed(2)} km</div>`:"";
-    const img=(r.imagen_url&&r.imagen_url.startsWith("http"))?`<img src="${r.imagen_url}" alt="${r.nombre_local||''}" onerror="this.style.display='none'">`:"";
+    const img=(r.imagen_url)
+      ? `<img src="${r.imagen_url.startsWith('http')?r.imagen_url:'./'+r.imagen_url}" alt="${r.nombre_local||''}" onerror="this.style.display='none'">`
+      : "";
     return `<div class="card">${img}
       <div><div class="title">${r.nombre_local||"(sin nombre)"} — <span>${r.rubro||""}</span></div>
       <div>${r.direccion||""} ${r.barrio?`(${r.barrio})`:""}</div>
@@ -267,14 +268,15 @@ document.getElementById('refreshBtn').onclick=loadCSV;
 document.getElementById('autoChk').onchange=e=>{if(e.target.checked){loadCSV();refreshTimer=setInterval(loadCSV,15000);}else{clearInterval(refreshTimer);}};
 document.getElementById('qall').addEventListener('keydown',e=>{if(e.key==="Enter"){e.preventDefault();buscar();}});
 
-(function(){const b=document.getElementById('micBtn');
-  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(!SR){b.disabled=true;b.innerText='🎤—';return;}
-  const rec=new SR();rec.lang='es-AR';rec.continuous=false;rec.interimResults=false;let active=false;
-  b.onclick=()=>{if(active)return;try{rec.start();active=true;b.textContent='⏺️';showStatus("Escuchando…");hideIntent();}catch{}};
-  rec.onresult=e=>{const t=e.results[0][0].transcript||'';const limpio=t.trim();document.getElementById('qall').value=limpio;showStatus("Voz: "+limpio);buscar(limpio);};
-  rec.onerror=()=>{showStatus("Error al escuchar.");};
-  rec.onend=()=>{active=false;b.textContent='🎤';};
+(function(){
+const b=document.getElementById('micBtn');
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+if(!SR){b.disabled=true;b.innerText='🎤—';return;}
+const rec=new SR();rec.lang='es-AR';rec.continuous=false;rec.interimResults=false;let active=false;
+b.onclick=()=>{if(active)return;try{rec.start();active=true;b.textContent='⏺️';showStatus("Escuchando…");hideIntent();}catch{}};
+rec.onresult=e=>{const t=e.results[0][0].transcript||'';const limpio=t.trim();document.getElementById('qall').value=limpio;showStatus("Voz: "+limpio);buscar(limpio);};
+rec.onerror=()=>{showStatus("Error al escuchar.");};
+rec.onend=()=>{active=false;b.textContent='🎤';};
 })();
 loadCSV();
 </script>
