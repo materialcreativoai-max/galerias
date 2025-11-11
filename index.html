@@ -18,7 +18,17 @@ h1{font-size:22px;margin:0 0 12px}
 .btn.mic{background:#fee2e2;color:#b91c1c}
 .tiny{font-size:12px;color:#6b7280;margin-top:4px}
 .card{display:flex;align-items:center;gap:12px;border:1px solid #e2e8f0;border-radius:10px;padding:10px;margin-bottom:8px;background:#fff}
-.card img{width:100px;height:100px;object-fit:cover;border-radius:8px;flex-shrink:0}
+.card img{
+  width:100px;
+  height:100px;
+  object-fit:cover;
+  border-radius:8px;
+  flex-shrink:0;
+  background:#f0f0f0;
+  min-width:100px;
+  min-height:100px;
+  display:block;
+}
 .title{font-weight:700;margin-bottom:4px}
 .title span{font-weight:600;color:#555}
 .meta{font-size:12px;color:#566;margin-top:4px}
@@ -26,7 +36,12 @@ h1{font-size:22px;margin:0 0 12px}
 .err{padding:8px 10px;background:#fff3f3;border:1px solid #ffd2d2;border-radius:10px;margin-bottom:12px;color:#7a1a1a;display:none}
 .switch{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#445}
 .switch input{transform:scale(1.2)}
-@media(max-width:600px){.row{flex-direction:column;align-items:stretch}.input{width:100%}}
+@media(max-width:600px){
+  .row{flex-direction:column;align-items:stretch}
+  .input{width:100%}
+  .card{flex-direction:column;align-items:flex-start}
+  .card img{width:100%;height:auto}
+}
 </style>
 </head>
 <body>
@@ -57,6 +72,7 @@ h1{font-size:22px;margin:0 0 12px}
 </div>
 
 <script>
+// --- configuración y utilidades igual que la estable anterior ---
 const CSV_URL="https://docs.google.com/spreadsheets/d/e/2PACX-1vSg0UeYMVZj0b9H2V63XS37oXlIwJ6SL4n-m6WJEbspzM5OP9QA3QF6qSw4fr81dw/pub?gid=1861393565&single=true&output=csv";
 const STATUS=document.getElementById("status");
 const ERR=document.getElementById("error");
@@ -95,10 +111,7 @@ return 2*R*Math.asin(Math.min(1,Math.sqrt(A)));}
 async function loadCSV(){
   try{
     showError("");showStatus("Cargando CSV…");
-    const r=await fetch(CSV_URL+"&nocache="+Date.now(),{
-      cache:"no-store",
-      headers:{'Accept':'text/csv'}
-    });
+    const r=await fetch(CSV_URL+"&nocache="+Date.now(),{cache:"no-store",headers:{'Accept':'text/csv'}});
     const txt=await r.text();
     if(/^\s*<!doctype/i.test(txt))throw new Error("HTML en vez de CSV");
     const raw=parseCSV(txt);
@@ -124,12 +137,8 @@ async function loadCSV(){
 const VERBOS=["comer","almorzar","comprar","buscar","necesito","arreglar","quiero","tomar"];
 function detectBarrio(q){
   if(!window._BARRIOS)return"";
-  if(q.includes("centro")&&!q.includes("microcentro")&&window._BARRIOS.includes("microcentro")){
-    return"microcentro";
-  }
-  if(q.includes("almorzar en el centro")&&window._BARRIOS.includes("microcentro")){
-    return"microcentro";
-  }
+  if(q.includes("centro")&&!q.includes("microcentro")&&window._BARRIOS.includes("microcentro"))return"microcentro";
+  if(q.includes("almorzar en el centro")&&window._BARRIOS.includes("microcentro"))return"microcentro";
   for(const b of window._BARRIOS){if(q.includes(b))return b;}
   return"";
 }
@@ -138,10 +147,8 @@ function detectLocal(q){let match=null;
   for(const d of DATA){if(!d.nombreNorm)continue;
     if(q.includes(d.nombreNorm)){if(match&&match!==d)return null;match=d;}
   }return match;}
-function tokenVariants(t){const v=new Set([t]);
-  if(t.endsWith("s")&&t.length>3)v.add(t.slice(0,-1));
-  if(t.endsWith("es")&&t.length>4)v.add(t.slice(0,-2));
-  return Array.from(v);}
+function tokenVariants(t){const v=new Set([t]);if(t.endsWith("s")&&t.length>3)v.add(t.slice(0,-1));
+  if(t.endsWith("es")&&t.length>4)v.add(t.slice(0,-2));return Array.from(v);}
 function isBarrioToken(t){if(!window._BARRIOS)return false;return window._BARRIOS.includes(t);}
 function scoreRow(d,toks,hasVerb){
   let s=0;for(const t of toks){const vars=tokenVariants(t);
