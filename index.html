@@ -3,105 +3,392 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Aquí Nomás — DEMO inteligente (sinónimos + fallback CSV + imágenes FIX)</title>
-<!--ID_SYS:AQNM_20251110_V3_IMG_FIX-->
+<title>Aquí Nomás — DEMO inteligente (V3 IMG ESTABLE)</title>
+<!--ID_SYS:AQNM_20251110_V3_IMG_ESTABLE-->
 <style>
 :root{--pri:#0b5cff;}
-body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:0;background:#f7f9fb;color:#0b1220}
-.wrap{max-width:900px;margin:0 auto;padding:16px}
-h1{font-size:22px;margin:0 0 12px}
-.box{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:12px;margin-bottom:12px}
-.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-.input{flex:1 1 200px;padding:10px 12px;border-radius:8px;border:1px solid #cbd5e1;font-size:15px}
-button{background:var(--pri);color:#fff;border:none;border-radius:8px;padding:10px 16px;font-size:15px;cursor:pointer}
-button:hover{background:#0048d0}
-.resultado{display:flex;align-items:center;gap:12px;border-bottom:1px solid #e2e8f0;padding:10px 0}
-.resultado img{width:100px;height:100px;object-fit:cover;border-radius:6px;flex-shrink:0}
-@media(max-width:600px){.resultado img{width:80px;height:80px}}
+*{box-sizing:border-box}
+body{
+  font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+  margin:0;
+  background:#f7f9fb;
+  color:#0b1220;
+}
+.wrap{
+  max-width:900px;
+  margin:0 auto;
+  padding:16px;
+}
+h1{
+  font-size:22px;
+  margin:0 0 12px;
+}
+.box{
+  background:#fff;
+  border:1px solid #e2e8f0;
+  border-radius:12px;
+  padding:12px;
+  margin-bottom:12px;
+}
+.row{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  align-items:center;
+}
+.input{
+  flex:1 1 200px;
+  padding:10px 12px;
+  border-radius:8px;
+  border:1px solid #cbd5e1;
+  font-size:15px;
+}
+button{
+  background:var(--pri);
+  color:#fff;
+  border:none;
+  border-radius:8px;
+  padding:10px 14px;
+  font-size:14px;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  gap:4px;
+}
+button:hover{background:#0048d0;}
+button:disabled{
+  opacity:.6;
+  cursor:not-allowed;
+}
+#resultados{
+  background:#fff;
+  border:1px solid #e2e8f0;
+  border-radius:12px;
+  padding:8px 12px;
+  min-height:40px;
+}
+.resultado{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  border-bottom:1px solid #e2e8f0;
+  padding:10px 0;
+}
+.resultado:last-child{
+  border-bottom:none;
+}
+.resultado img{
+  width:100px;
+  height:100px;
+  object-fit:cover;
+  border-radius:6px;
+  flex-shrink:0;
+}
+.resultado-texto{
+  flex:1 1 auto;
+  font-size:14px;
+  line-height:1.4;
+}
+.badge{
+  display:inline-block;
+  padding:2px 6px;
+  border-radius:999px;
+  font-size:11px;
+  background:#eff6ff;
+  color:#1d4ed8;
+  margin-top:4px;
+}
+.meta{
+  font-size:12px;
+  color:#475569;
+  margin-top:4px;
+}
+.small{
+  font-size:12px;
+  color:#64748b;
+  margin-top:4px;
+}
+@media(max-width:600px){
+  .resultado img{
+    width:80px;
+    height:80px;
+  }
+  button{
+    padding:8px 10px;
+    font-size:13px;
+  }
+}
 </style>
 </head>
 <body>
 <div class="wrap">
-<h1>Aquí Nomás — DEMO inteligente</h1>
-<div class="box row">
-<input id="busqueda" class="input" placeholder="Buscar un local o servicio...">
-<button id="btnBuscar">Buscar</button>
-<button id="btnVoz">🎤</button>
-<button id="btnLimpiar">Limpiar</button>
-</div>
-<div id="resultados"></div>
+  <h1>Aquí Nomás — DEMO inteligente</h1>
+
+  <div class="box row">
+    <input id="busqueda" class="input" placeholder="Buscar un local o servicio...">
+    <button id="btnBuscar">Buscar</button>
+    <button id="btnVoz">🎤</button>
+    <button id="btnCerca">Cerca</button>
+    <button id="btnLimpiar">Limpiar</button>
+  </div>
+
+  <div id="resultados"><span class="small">Escribí, hablá o usá “Cerca” para ver locales.</span></div>
 </div>
 
 <script>
-const sheetURL='https://docs.google.com/spreadsheets/d/e/2PACX-1vSg0UeYMVZj0b9H2V63XS37oXlIwJ6SL4n-m6WJEbspzM5OP9QA3QF6qSw4fr81dw/pub?gid=1861393565&single=true&output=csv';
-  let locales=[];
+// =======================
+// CONFIGURACIÓN DE DATOS
+// =======================
+const sheetURL =
+  'https://docs.google.com/spreadsheets/d/e/2PACX-1vSg0UeYMVZj0b9H2V63XS37oXlIwJ6SL4n-m6WJEbspzM5OP9QA3QF6qSw4fr81dw/pub?gid=1861393565&single=true&output=csv';
 
+let locales = [];
+let datosListos = false;
+
+// Mapeo simple de sinónimos / frases a palabras clave
+const sinonimos = {
+  "almorzar en el centro": ["almuerzo","centro"],
+  "almorzar en recoleta": ["almuerzo","recoleta"],
+  "almorzar": ["almuerzo"],
+  "comer un helado": ["helado"],
+  "arreglo de cierres": ["cierres"],
+  "tomar un café": ["café"]
+};
+
+// =======================
+// UTILIDADES
+// =======================
+function normalizarTexto(t){
+  return (t||"")
+    .toString()
+    .toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+    .trim();
+}
+
+function generarVariantesConsulta(q){
+  const base = normalizarTexto(q);
+  const variantes = new Set([base]);
+
+  Object.keys(sinonimos).forEach(frase=>{
+    const fNorm = normalizarTexto(frase);
+    if(base.includes(fNorm)){
+      const extras = sinonimos[frase].join(" ");
+      variantes.add((base + " " + extras).trim());
+      variantes.add(extras);
+    }
+  });
+
+  return Array.from(variantes);
+}
+
+function calcularDistanciaKm(lat1,lng1,lat2,lng2){
+  const R = 6371;
+  const dLat = (lat2-lat1)*Math.PI/180;
+  const dLng = (lng2-lng1)*Math.PI/180;
+  const a =
+    Math.sin(dLat/2)**2 +
+    Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*
+    Math.sin(dLng/2)**2;
+  const c = 2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+  return R*c;
+}
+
+// =======================
+// CARGA DE CSV
+// =======================
 async function cargarCSV(){
   console.log("Cargando CSV…");
   try{
-    const resp=await fetch(sheetURL);
-    const data=await resp.text();
-    const filas=data.split("\n").map(r=>r.split(","));
-    const encabezado=filas.shift().map(h=>h.trim());
-    locales=filas.map(f=>{
-      let obj={};
-      encabezado.forEach((h,i)=>obj[h]=f[i]?f[i].trim():"");
+    const resp = await fetch(sheetURL);
+    const data = await resp.text();
+
+    const filas = data.split(/\r?\n/).filter(l=>l.trim()!=="");
+    if(filas.length<=1){
+      console.warn("CSV vacío o sin filas de datos");
+      return;
+    }
+    const encabezado = filas[0].split(",").map(h=>h.trim());
+    locales = filas.slice(1).map(f=>{
+      const celdas = f.split(",");
+      let obj = {};
+      encabezado.forEach((h,i)=>{
+        obj[h] = (celdas[i]||"").trim();
+      });
       return obj;
     });
-    console.log("CSV cargado:",locales.length,"filas");
-  }catch(err){console.error("Error cargando CSV:",err);}
+    datosListos = true;
+    console.log("CSV cargado:", locales.length, "filas");
+  }catch(err){
+    console.error("Error cargando CSV:",err);
+  }
 }
 
-function mostrarResultados(resultados){
-  const cont=document.getElementById("resultados");
-  cont.innerHTML="";
-  if(resultados.length===0){
-    cont.innerHTML="<p>No se encontraron resultados.</p>";
+// =======================
+// UI: MOSTRAR RESULTADOS
+// =======================
+function mostrarResultados(resultados,mensajeVacio){
+  const cont = document.getElementById("resultados");
+  cont.innerHTML = "";
+
+  if(!resultados || resultados.length===0){
+    cont.innerHTML = `<p class="small">${mensajeVacio || "No se encontraron resultados."}</p>`;
     return;
   }
+
   resultados.forEach(loc=>{
-    const div=document.createElement("div");
-    div.className="resultado";
-    const img=document.createElement("img");
-    const ruta=(loc.imagen_url||"").trim();  // fix de espacios o saltos
-    img.src=ruta;
-    img.alt=loc.nombre_local||"imagen";
-    div.appendChild(img);
-    const texto=document.createElement("div");
-    texto.innerHTML=`<strong>${loc.nombre_local}</strong><br>${loc.rubro}<br>${loc.direccion}<br>${loc.promo_texto||""}`;
+    const div = document.createElement("div");
+    div.className = "resultado";
+
+    // Imagen (solo si hay algo en imagen_url)
+    let ruta = normalizarTexto(loc.imagen_url || "");
+    if(ruta){
+      // si no tiene extensión, asumimos .jpeg
+      if(!ruta.includes(".")) ruta += ".jpeg";
+      const img = document.createElement("img");
+      img.src = ruta;
+      img.alt = loc.nombre_local || "imagen";
+      div.appendChild(img);
+    }
+
+    const texto = document.createElement("div");
+    texto.className = "resultado-texto";
+
+    const nombre = loc.nombre_local || "";
+    const rubro = loc.rubro || "";
+    const direccion = loc.direccion || "";
+    const barrio = loc.barrio || "";
+    const promo = loc.promo_texto || "";
+    const horario = loc.horario || "";
+    const whatsapp = loc.whatsapp || "";
+
+    texto.innerHTML = `
+      <strong>${nombre}</strong>
+      ${rubro ? `<div class="badge">${rubro}</div>` : ""}
+      ${direccion || barrio ? `<div class="meta">${direccion}${barrio ? " — " + barrio : ""}</div>` : ""}
+      ${promo ? `<div class="small">${promo}</div>` : ""}
+      ${horario || whatsapp ? `<div class="small">${horario}${whatsapp ? " · WhatsApp: ${whatsapp}" : ""}</div>` : ""}
+    `;
+
     div.appendChild(texto);
     cont.appendChild(div);
   });
 }
 
+// =======================
+// BÚSQUEDA POR TEXTO
+// =======================
 function buscar(){
-  const q=document.getElementById("busqueda").value.toLowerCase();
-  if(!q){document.getElementById("resultados").innerHTML="";return;}
-  const resultados=locales.filter(l=>
-    l.nombre_local.toLowerCase().includes(q)||
-    l.rubro.toLowerCase().includes(q)||
-    l.keywords.toLowerCase().includes(q)||
-    l.barrio.toLowerCase().includes(q)
-  );
-  mostrarResultados(resultados);
+  if(!datosListos){
+    mostrarResultados([], "Todavía se están cargando los datos. Probá de nuevo en unos segundos.");
+    return;
+  }
+
+  const q = document.getElementById("busqueda").value;
+  const variantes = generarVariantesConsulta(q);
+
+  if(!q || !q.trim()){
+    document.getElementById("resultados").innerHTML =
+      '<span class="small">Escribí algo o usá el micrófono para buscar.</span>';
+    return;
+  }
+
+  const resultados = locales.filter(l=>{
+    const campos = [
+      normalizarTexto(l.nombre_local),
+      normalizarTexto(l.rubro),
+      normalizarTexto(l.keywords),
+      normalizarTexto(l.barrio),
+      normalizarTexto(l.direccion),
+      normalizarTexto(l.promo_texto)
+    ].join(" ");
+
+    return variantes.some(v=>v && campos.includes(v));
+  });
+
+  mostrarResultados(resultados, "No se encontraron locales para esa búsqueda.");
 }
 
+// =======================
+// BÚSQUEDA CERCA
+// =======================
+function buscarCerca(){
+  if(!datosListos){
+    mostrarResultados([], "Todavía se están cargando los datos. Probá de nuevo en unos segundos.");
+    return;
+  }
+
+  if(!navigator.geolocation){
+    mostrarResultados([], "Tu dispositivo no permite obtener la ubicación.");
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(pos=>{
+    const latUser = pos.coords.latitude;
+    const lngUser = pos.coords.longitude;
+
+    // radio simple, se puede ajustar (ej: 1.5 km)
+    const RADIO_KM = 1.5;
+
+    const cercanos = locales
+      .map(l=>{
+        const lat = parseFloat((l.lat||"").replace(",",".")) || null;
+        const lng = parseFloat((l.lng||"").replace(",",".")) || null;
+        if(lat===null || lng===null) return null;
+        const dist = calcularDistanciaKm(latUser,lngUser,lat,lng);
+        return {loc:l,dist};
+      })
+      .filter(x=>x && x.dist<=RADIO_KM)
+      .sort((a,b)=>a.dist-b.dist)
+      .map(x=>x.loc);
+
+    mostrarResultados(cercanos, "No hay locales cercanos dentro del radio definido.");
+  },err=>{
+    console.warn("Error geolocalización:",err);
+    mostrarResultados([], "No se pudo obtener tu ubicación.");
+  });
+}
+
+// =======================
+// VOZ
+// =======================
+function iniciarVoz(){
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SR){
+    alert("Tu navegador no soporta reconocimiento de voz.");
+    return;
+  }
+
+  const rec = new SR();
+  rec.lang = "es-AR";
+  rec.start();
+  rec.onresult = e=>{
+    const txt = e.results[0][0].transcript;
+    document.getElementById("busqueda").value = txt;
+    buscar();
+  };
+}
+
+// =======================
+// EVENTOS
+// =======================
 document.getElementById("btnBuscar").addEventListener("click",buscar);
 document.getElementById("btnLimpiar").addEventListener("click",()=>{
   document.getElementById("busqueda").value="";
-  document.getElementById("resultados").innerHTML="";
+  document.getElementById("resultados").innerHTML =
+    '<span class="small">Escribí, hablá o usá “Cerca” para ver locales.</span>';
 });
-document.getElementById("btnVoz").addEventListener("click",()=>{
-  const rec=new(window.SpeechRecognition||window.webkitSpeechRecognition)();
-  rec.lang="es-ES";
-  rec.start();
-  rec.onresult=e=>{
-    const txt=e.results[0][0].transcript;
-    document.getElementById("busqueda").value=txt;
-    buscar();
-  };
+document.getElementById("btnVoz").addEventListener("click",iniciarVoz);
+document.getElementById("btnCerca").addEventListener("click",buscar);
+document.getElementById("btnCerca").addEventListener("dblclick",buscarCerca); // ej: click normal = buscar texto "cerca", doble click = geolocalización
+
+document.getElementById("busqueda").addEventListener("keydown",e=>{
+  if(e.key==="Enter") buscar();
 });
 
+// =======================
+// INICIO
+// =======================
 cargarCSV();
 </script>
 </body>
