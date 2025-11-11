@@ -110,6 +110,12 @@ function tokenVariants(t){const v=new Set([t]);if(t.endsWith("s")&&t.length>3)v.
 function isBarrioToken(t){if(!window._BARRIOS)return false;return window._BARRIOS.includes(t);}
 function scoreRow(d,toks,hasVerb){let s=0;for(const t of toks){const vars=tokenVariants(t);for(const v of vars){if(d.nombreNorm.includes(v))s+=4;if(d.rubroNorm.includes(v))s+=hasVerb?7:3;if(d.kwNorm.includes(v))s+=hasVerb?6:2;if(d.textNorm.includes(v))s+=1;}}return s;}
 
+function proxify(url){
+  if(!url)return "";
+  if(url.startsWith("https://images.weserv.nl/")) return url;
+  return "https://images.weserv.nl/?url="+encodeURIComponent(url)+"&output=jpg";
+}
+
 function buscar(fromText){
   hideIntent();
   if(!LOADED){showStatus("Esperá que cargue el CSV…");return;}
@@ -175,9 +181,9 @@ function render(list,msg){
     const maps=`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((r.direccion||"")+" "+(r.barrio||""))}`;
     const dist=(typeof o.dist==="number")?`<div class="meta">≈ ${o.dist.toFixed(2)} km</div>`:"";
     const imgSrc=r.imagen_url?r.imagen_url.trim():"";
-    const safeSrc=imgSrc?imgSrc:`https://via.placeholder.com/120x80?text=Sin+Imagen`;
+    const proxy=imgSrc?proxify(imgSrc):"https://via.placeholder.com/120x80?text=Sin+Imagen";
     return `<div class="card">
-      <img src="${safeSrc}" onerror="this.src='https://via.placeholder.com/120x80?text=Sin+Imagen'">
+      <img src="${proxy}" onerror="this.src='https://via.placeholder.com/120x80?text=Sin+Imagen'">
       <div>
         <div class="title">${r.nombre_local||"(sin nombre)"} — <span>${r.rubro||""}</span></div>
         <div>${r.direccion||""} ${r.barrio?`(${r.barrio})`:""}</div>
