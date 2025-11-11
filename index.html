@@ -95,7 +95,10 @@ return 2*R*Math.asin(Math.min(1,Math.sqrt(A)));}
 async function loadCSV(){
   try{
     showError("");showStatus("Cargando CSV…");
-    const r=await fetch(CSV_URL+"&nocache="+Date.now(),{cache:"no-store"});
+    const r=await fetch(CSV_URL+"&nocache="+Date.now(),{
+      cache:"no-store",
+      headers:{'Accept':'text/csv'}
+    });
     const txt=await r.text();
     if(/^\s*<!doctype/i.test(txt))throw new Error("HTML en vez de CSV");
     const raw=parseCSV(txt);
