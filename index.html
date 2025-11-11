@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Aquí Nomás — DEMO inteligente (V3 IMG CSV FIX)</title>
-<!--ID_SYS:AQNM_20251110_V3_IMG_CSV_FIX-->
+<title>Aquí Nomás — DEMO inteligente (V3 IMG ON)</title>
+<!--ID_SYS:AQNM_20251110_V3_IMG_ON-->
 <style>
 :root{--pri:#0b5cff;}
 body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:0;background:#f7f9fb;color:#0b1220}
@@ -37,7 +37,7 @@ button:hover{background:#0048d0}
 const sheetURL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSg0UeYMVZj0b9H2V63XS37oXlIwJ6SL4n-m6WJEbspzM5OP9QA3QF6qSw4fr81dw/pub?gid=1861393565&single=true&output=csv';
 let locales = [];
 
-// --- PARSER CSV QUE RESPETA COMILLAS ---
+// --- PARSER CSV QUE RESPETA COMILLAS Y CARGA COMPLETA ---
 function parseCSV(text){
   const rows = [];
   let row = [];
@@ -46,33 +46,17 @@ function parseCSV(text){
 
   for(let i=0;i<text.length;i++){
     const c = text[i];
-
     if(c === '"'){
-      if(inQuotes && text[i+1] === '"'){ // comilla escapada ""
-        cur += '"';
-        i++;
-      }else{
-        inQuotes = !inQuotes;
-      }
+      if(inQuotes && text[i+1] === '"'){cur += '"'; i++;}
+      else {inQuotes = !inQuotes;}
     }else if(c === ',' && !inQuotes){
-      row.push(cur);
-      cur = '';
+      row.push(cur); cur = '';
     }else if((c === '\n' || c === '\r') && !inQuotes){
-      if(cur !== '' || row.length){
-        row.push(cur);
-        rows.push(row);
-        row = [];
-        cur = '';
-      }
-      if(c === '\r' && text[i+1] === '\n') i++; // manejar CRLF
-    }else{
-      cur += c;
-    }
+      if(cur !== '' || row.length){row.push(cur); rows.push(row); row = []; cur = '';}
+      if(c === '\r' && text[i+1] === '\n') i++;
+    }else{cur += c;}
   }
-  if(cur !== '' || row.length){
-    row.push(cur);
-    rows.push(row);
-  }
+  if(cur !== '' || row.length){row.push(cur); rows.push(row);}
   return rows;
 }
 
@@ -81,90 +65,72 @@ async function cargarCSV(){
   try{
     const resp = await fetch(sheetURL);
     const data = await resp.text();
-
     const filas = parseCSV(data);
-    if(!filas.length){
-      console.warn("CSV vacío");
-      return;
-    }
-    const encabezado = filas[0].map(h => h.trim());
-    locales = filas.slice(1).map(f => {
-      const obj = {};
-      encabezado.forEach((h,i) => {
-        obj[h] = (f[i] || "").trim().replace(/\r/g,"").replace(/\n/g,"");
+    const encabezado = filas.shift().map(h => h.trim());
+    locales = filas.map(f=>{
+      let obj={};
+      encabezado.forEach((h,i)=>{
+        obj[h]=f[i]?f[i].trim().replace(/\r/g,"").replace(/\n/g,""):"";
       });
       return obj;
     });
-    console.log("CSV cargado:", locales.length, "filas");
-  }catch(err){
-    console.error("Error cargando CSV:", err);
-  }
+    console.log("CSV cargado:",locales.length,"filas");
+  }catch(err){console.error("Error cargando CSV:",err);}
 }
 
 function mostrarResultados(resultados){
-  const cont = document.getElementById("resultados");
-  cont.innerHTML = "";
-  if(!resultados.length){
-    cont.innerHTML = "<p>No se encontraron resultados.</p>";
+  const cont=document.getElementById("resultados");
+  cont.innerHTML="";
+  if(resultados.length===0){
+    cont.innerHTML="<p>No se encontraron resultados.</p>";
     return;
   }
-  resultados.forEach(loc => {
-    const div = document.createElement("div");
-    div.className = "resultado";
+  resultados.forEach(loc=>{
+    const div=document.createElement("div");
+    div.className="resultado";
 
-    const url = (loc.imagen_url || "").trim();
+    const url=(loc.imagen_url||"").trim();
     if(url && url.startsWith("http")){
-      const img = document.createElement("img");
-      img.src = url;
-      img.alt = loc.nombre_local || "imagen";
-      img.onerror = () => img.style.display = "none";
+      const img=document.createElement("img");
+      img.src=url;
+      img.alt=loc.nombre_local||"imagen";
+      img.onerror=()=>img.style.display="none";
       div.appendChild(img);
     }
 
-    const texto = document.createElement("div");
-    texto.innerHTML = `
-      <strong>${loc.nombre_local || ""}</strong><br>
-      ${loc.rubro || ""}<br>
-      ${loc.direccion || ""}<br>
-      ${loc.promo_texto || ""}
-    `;
+    const texto=document.createElement("div");
+    texto.innerHTML=`<strong>${loc.nombre_local}</strong><br>${loc.rubro}<br>${loc.direccion}<br>${loc.promo_texto||""}`;
     div.appendChild(texto);
     cont.appendChild(div);
   });
 }
 
 function buscar(){
-  const q = document.getElementById("busqueda").value.toLowerCase();
-  if(!q){
-    document.getElementById("resultados").innerHTML = "";
-    return;
-  }
-  const resultados = locales.filter(l =>
-    (l.nombre_local || "").toLowerCase().includes(q) ||
-    (l.rubro || "").toLowerCase().includes(q) ||
-    (l.keywords || "").toLowerCase().includes(q) ||
-    (l.barrio || "").toLowerCase().includes(q)
+  const q=document.getElementById("busqueda").value.toLowerCase();
+  if(!q){document.getElementById("resultados").innerHTML="";return;}
+  const resultados=locales.filter(l=>
+    (l.nombre_local||"").toLowerCase().includes(q)||
+    (l.rubro||"").toLowerCase().includes(q)||
+    (l.keywords||"").toLowerCase().includes(q)||
+    (l.barrio||"").toLowerCase().includes(q)
   );
   mostrarResultados(resultados);
 }
 
-document.getElementById("btnBuscar").addEventListener("click", buscar);
-document.getElementById("btnLimpiar").addEventListener("click", () => {
-  document.getElementById("busqueda").value = "";
-  document.getElementById("resultados").innerHTML = "";
+document.getElementById("btnBuscar").addEventListener("click",buscar);
+document.getElementById("btnLimpiar").addEventListener("click",()=>{
+  document.getElementById("busqueda").value="";
+  document.getElementById("resultados").innerHTML="";
 });
-document.getElementById("btnVoz").addEventListener("click", () => {
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if(!SR){
-    alert("Tu navegador no soporta reconocimiento de voz.");
-    return;
-  }
-  const rec = new SR();
-  rec.lang = "es-ES";
+document.getElementById("btnVoz").addEventListener("click",()=>{
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){alert("Tu navegador no soporta reconocimiento de voz.");return;}
+  const rec=new SR();
+  rec.lang="es-ES";
   rec.start();
-  rec.onresult = e => {
-    const txt = e.results[0][0].transcript;
-    document.getElementById("busqueda").value = txt;
+  rec.onresult=e=>{
+    const txt=e.results[0][0].transcript;
+    document.getElementById("busqueda").value=txt;
     buscar();
   };
 });
